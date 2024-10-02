@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Página Inicial</title>
+    <script>
+        document.addEventListener('DOMContentLoaded', checkAuth);
+
+        function checkAuth() {
+            const token = sessionStorage.getItem('token');
+            if (!token) {
+                window.location.href = 'index.html'; // Redireciona para o login se não houver token
+            }
+        }
+
+        window.onbeforeunload = function(event) {
+            const confirmationMessage = "Você será deslogado. Deseja continuar?";
+            event.returnValue = confirmationMessage; // Para navegadores modernos
+            return confirmationMessage; // Para navegadores mais antigos
+        };
+
+        function confirmLogout() {
+            const userConfirmed = confirm("Você será deslogado. Deseja continuar?");
+            if (userConfirmed) {
+                logout();
+            }
+        }
+
+        function logout() {
+            sessionStorage.removeItem('token'); // Remove o token
+            window.location.href = 'index.html'; // Redireciona para o login
+        }
+    </script>
+</head>
+<body>
+    <h1>Página Inicial</h1>
+    <button onclick="confirmLogout()">Logout</button>
+</body>
+</html>
