@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Registro de Servidores</title>
+    <style>
+        .selected-os-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background-color: #f1f1f1;
+            padding: 5px;
+            margin-bottom: 5px;
+            border-radius: 4px;
+        }
+
+        .remove-btn {
+            cursor: pointer;
+            color: white;
+            background-color: #e74c3c; /* Cor de fundo vermelho */
+            border: none;
+            border-radius: 50%; /* Arredonda o botão */
+            padding: 5px 8px;
+            font-size: 14px; /* Tamanho da fonte */
+            width: 25px; /* Largura do botão */
+            height: 25px; /* Altura do botão */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .remove-btn:hover {
+            background-color: #c0392b; /* Cor ao passar o mouse */
+        }
+
+        select {
+            width: 100%;
+            margin-bottom: 10px;
+            padding: 5px;
+        }
+    </style>
+</head>
+<body>
+    <form>
+        <label for="server-os">Selecione o Sistema Operacional:</label>
+        <select id="server-os" name="all-os">
+            <option value="" disabled selected>Escolha um sistema operacional</option>
+            <option value="windows">Windows</option>
+            <option value="linux">Linux</option>
+            <option value="macos">MacOS</option>
+            <option value="ubuntu">Ubuntu</option>
+            <option value="redhat">Red Hat</option>
+            <!-- Adicione suas 100 opções aqui -->
+        </select>
+
+        <div id="selected-os-list" class="selected-os-list">
+            <!-- As opções selecionadas aparecerão aqui -->
+        </div>
+    </form>
+
+    <script>
+        const osSelect = document.getElementById('server-os');
+        const selectedOsList = document.getElementById('selected-os-list');
+        let selectedOsArray = [];
+
+        // Adiciona o sistema operacional selecionado
+        osSelect.addEventListener('change', function () {
+            const selectedOption = osSelect.value;
+            if (selectedOption && !selectedOsArray.includes(selectedOption)) {
+                selectedOsArray.push(selectedOption);
+                updateSelectedOs();
+            }
+        });
+
+        // Atualiza a lista de sistemas operacionais selecionados
+        function updateSelectedOs() {
+            selectedOsList.innerHTML = ''; // Limpa a lista
+            selectedOsArray.forEach(os => {
+                const osItem = document.createElement('div');
+                osItem.classList.add('selected-os-item');
+                osItem.innerText = os;
+
+                const removeBtn = document.createElement('button');
+                removeBtn.classList.add('remove-btn');
+                removeBtn.innerText = 'X'; // Texto "X"
+
+                removeBtn.onclick = () => removeOs(os);
+
+                osItem.appendChild(removeBtn);
+                selectedOsList.appendChild(osItem);
+            });
+        }
+
+        // Remove um sistema operacional da lista
+        function removeOs(os) {
+            selectedOsArray = selectedOsArray.filter(item => item !== os);
+            updateSelectedOs();
+        }
+    </script>
+</body>
+</html>
+
+<!--
+CREATE TABLE Servidores (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    nome VARCHAR(255) NOT NULL
+    -- Adicione outros campos conforme necessário
+);
+
+CREATE TABLE SistemasOperacionais (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    nome VARCHAR(255) NOT NULL
+    -- Adicione outros campos conforme necessário
+);
+
+CREATE TABLE ServidorSistema (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    servidor_id INT,
+    sistema_id INT,
+    FOREIGN KEY (servidor_id) REFERENCES Servidores(id),
+    FOREIGN KEY (sistema_id) REFERENCES SistemasOperacionais(id)
+);
+-->
+
+//////////////////////////// HISTORIC
+
+<!-- BANCO DE DADOS
+
+// Middleware para verificar o token JWT
+function verificarToken(req, res, next) {
+    const token = req.headers['authorization']?.split(' ')[1]; // Extrai o token do cabeçalho
+
+    if (!token) return res.sendStatus(403); // Sem token
+
+    jwt.verify(token, 'sua_chave_secreta', (err, decoded) => {
+        if (err) return res.sendStatus(401); // Token inválido
+        req.usuario = decoded.usuario; // Adiciona o usuário decodificado ao request
+        next();
+    });
+}
+
+// Rota para registrar o acesso
+app.post('/registrar', verificarToken, (req, res) => {
+    const { acao, descricao, data_hora } = req.body;
+    const usuario = req.usuario; // Obtém o usuário do token decodificado
+    const sql = 'INSERT INTO HistoricoAcessos (usuario, acao, descricao, data_hora) VALUES (?, ?, ?, ?)';
+    
+    db.query(sql, [usuario, acao, descricao, data_hora], (err, result) => {
+        if (err) {
+            console.error(err);
+            return res.status(500).send('Erro ao registrar acesso.');
+        }
+        res.status(200).send('Registro de acesso salvo com sucesso!');
+    });
+});
+
+CREATE TABLE HistoricoAcessos (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    usuario VARCHAR(255) NOT NULL,
+    acao VARCHAR(255) NOT NULL,
+    descricao TEXT NOT NULL,
+    data_hora DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+
+-->
+
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Registro de Acesso</title>
+</head>
+<body>
+    <h1>Bem-vindo ao Meu Site</h1>
+    <script>
+        // Simulando obtenção do token JWT do armazenamento local
+        const token = localStorage.getItem('jwt'); // Supondo que o token esteja armazenado no localStorage
+
+        const acao = 'acesso';
+        const descricao = 'Usuário acessou o site.';
+        const data_hora = new Date().toISOString().slice(0, 19).replace('T', ' '); // Data atual formatada
+
+        // Função para registrar o acesso
+        async function registrarAcesso() {
+            const response = await fetch('http://localhost:3000/registrar', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}` // Inclui o token JWT no cabeçalho
+                },
+                body: JSON.stringify({ acao, descricao, data_hora })
+            });
+
+            if (response.ok) {
+                console.log('Registro de acesso salvo com sucesso!');
+            } else {
+                console.error('Erro ao salvar o registro de acesso.');
+            }
+        }
+
+        // Chama a função ao carregar a página
+        registrarAcesso();
+    </script>
+</body>
+</html>
+
+
