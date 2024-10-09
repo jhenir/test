@@ -1,3 +1,159 @@
+////////////////////BUSCARDADOS
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Busca de Dados</title>
+</head>
+<body>
+    <h2>Buscar Dados na Tabela</h2>
+    
+    <!-- Campo de busca -->
+    <form id="search-form" action="/buscar" method="GET">
+        <input type="text" id="search-input" name="termo" placeholder="Digite o termo de busca..." required>
+        <button type="submit">Buscar</button>
+    </form>
+
+    <!-- Tabela onde os dados serão exibidos -->
+    <table id="result-table" border="1">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Nome</th>
+                <th>Valor</th>
+            </tr>
+        </thead>
+        <tbody id="table-body">
+            <!-- Os resultados da busca aparecerão aqui -->
+        </tbody>
+    </table>
+
+    <script>
+        // Se você quiser fazer uma busca dinâmica sem recarregar a página, pode usar Ajax ou Fetch.
+        // Isso seria uma implementação opcional com JS, mas aqui estamos mantendo as buscas simples.
+    </script>
+</body>
+</html>
+
+////////
+// Rota para realizar a busca
+app.get('/buscar', (req, res) => {
+    const termoBusca = req.query.termo;
+
+    if (!termoBusca) {
+        return res.status(400).send('Termo de busca não fornecido.');
+    }
+
+    // Consulta ao banco de dados para buscar o termo
+    const sql = "SELECT * FROM sua_tabela WHERE nome LIKE ? OR valor LIKE ?";
+    const valores = [`%${termoBusca}%`, `%${termoBusca}%`];  // Busca parcial com LIKE
+
+    con.query(sql, valores, (err, results) => {
+        if (err) {
+            return res.status(500).send('Erro ao realizar a busca no banco de dados.');
+        }
+
+        // Renderiza os resultados como uma tabela simples em HTML
+        let responseHTML = `
+            <h2>Resultados da Busca para "${termoBusca}"</h2>
+            <table border="1">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Nome</th>
+                        <th>Valor</th>
+                    </tr>
+                </thead>
+                <tbody>`;
+
+        results.forEach(row => {
+            responseHTML += `
+                <tr>
+                    <td>${row.id}</td>
+                    <td>${row.nome}</td>
+                    <td>${row.valor}</td>
+                </tr>`;
+        });
+
+        responseHTML += `</tbody></table>`;
+
+        res.send(responseHTML);
+    });
+});
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////ANEXO
+
+npm install express multer
+///
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Upload de Arquivo PDF</title>
+</head>
+<body>
+    <h2>Faça upload de um arquivo PDF (máx 10 MB)</h2>
+    <form action="/upload" method="POST" enctype="multipart/form-data">
+        <input type="file" name="arquivoPDF" accept=".pdf" required>
+        <button type="submit">Enviar</button>
+    </form>
+</body>
+</html>
+////////
+const storage = multer.diskStorage({
+    destination: function (req, file, cb) {
+        cb(null, 'uploads/'); // Pasta onde os arquivos serão salvos
+    },
+    filename: function (req, file, cb) {
+        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+        cb(null, uniqueSuffix + path.extname(file.originalname)); // Gera um nome único para o arquivo
+    }
+});
+
+// Filtro para aceitar apenas arquivos PDF
+const fileFilter = (req, file, cb) => {
+    if (file.mimetype === 'application/pdf') {
+        cb(null, true);
+    } else {
+        cb(new Error('Apenas arquivos PDF são permitidos'), false);
+    }
+};
+
+// Configurações de upload (tamanho máximo: 10MB)
+const upload = multer({
+    storage: storage,
+    limits: { fileSize: 10 * 1024 * 1024 }, // 10 MB
+    fileFilter: fileFilter
+});
+
+// Rota para upload de arquivo
+app.post('/upload', upload.single('arquivoPDF'), (req, res) => {
+    if (!req.file) {
+        return res.status(400).send('Nenhum arquivo enviado ou arquivo inválido.');
+    }
+
+    // Salvar o nome e o caminho do arquivo no banco de dados
+    const sql = "INSERT INTO arquivos (nome_arquivo, caminho_arquivo) VALUES (?, ?)";
+    const values = [req.file.filename, req.file.path];
+
+    db.query(sql, values, (err, result) => {
+        if (err) {
+            return res.status(500).send('Erro ao salvar no banco de dados.');
+        }
+        res.send('Arquivo enviado e salvo com sucesso!');
+    });
+});
+//////
+CREATE TABLE arquivos (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    nome_arquivo VARCHAR(255) NOT NULL,
+    caminho_arquivo VARCHAR(255) NOT NULL,
+    data_upload TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+///////////////////////////////////////////////////////////////////////////////////////////////Testando
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
@@ -18,20 +174,20 @@
         .remove-btn {
             cursor: pointer;
             color: white;
-            background-color: #e74c3c; /* Cor de fundo vermelho */
+            background-color: #e74c3c;
             border: none;
-            border-radius: 50%; /* Arredonda o botão */
+            border-radius: 50%;
             padding: 5px 8px;
-            font-size: 14px; /* Tamanho da fonte */
-            width: 25px; /* Largura do botão */
-            height: 25px; /* Altura do botão */
+            font-size: 14px;
+            width: 25px;
+            height: 25px;
             display: flex;
             align-items: center;
             justify-content: center;
         }
 
         .remove-btn:hover {
-            background-color: #c0392b; /* Cor ao passar o mouse */
+            background-color: #c0392b;
         }
 
         select {
@@ -42,27 +198,45 @@
     </style>
 </head>
 <body>
-    <form>
+    <form id="os-form" action="/submit-os" method="POST">
         <label for="server-os">Selecione o Sistema Operacional:</label>
         <select id="server-os" name="all-os">
             <option value="" disabled selected>Escolha um sistema operacional</option>
-            <option value="windows">Windows</option>
-            <option value="linux">Linux</option>
-            <option value="macos">MacOS</option>
-            <option value="ubuntu">Ubuntu</option>
-            <option value="redhat">Red Hat</option>
-            <!-- Adicione suas 100 opções aqui -->
+            <!-- As opções serão carregadas dinamicamente -->
         </select>
 
         <div id="selected-os-list" class="selected-os-list">
             <!-- As opções selecionadas aparecerão aqui -->
         </div>
+        <input type="hidden" name="selectedOs" id="selectedOs">
+        <button type="submit">Enviar</button>
     </form>
 
     <script>
         const osSelect = document.getElementById('server-os');
         const selectedOsList = document.getElementById('selected-os-list');
+        const selectedOsInput = document.getElementById('selectedOs');
         let selectedOsArray = [];
+
+        // Carrega as opções do banco de dados usando fetch
+        async function loadOptions() {
+            try {
+                const response = await fetch('/api/get-os-options'); // Ajuste o endpoint conforme necessário
+                const data = await response.json();
+                
+                // Popula o select com as opções do banco de dados
+                data.forEach(option => {
+                    const opt = document.createElement('option');
+                    opt.value = option.value;
+                    opt.innerText = option.label;
+                    osSelect.appendChild(opt);
+                });
+            } catch (error) {
+                console.error('Erro ao carregar opções:', error);
+            }
+        }
+
+        loadOptions();
 
         // Adiciona o sistema operacional selecionado
         osSelect.addEventListener('change', function () {
@@ -90,6 +264,9 @@
                 osItem.appendChild(removeBtn);
                 selectedOsList.appendChild(osItem);
             });
+
+            // Atualiza o campo hidden com as opções selecionadas
+            selectedOsInput.value = JSON.stringify(selectedOsArray);
         }
 
         // Remove um sistema operacional da lista
@@ -100,111 +277,63 @@
     </script>
 </body>
 </html>
-
-<!--
-CREATE TABLE Servidores (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    nome VARCHAR(255) NOT NULL
-    -- Adicione outros campos conforme necessário
-);
-
-CREATE TABLE SistemasOperacionais (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    nome VARCHAR(255) NOT NULL
-    -- Adicione outros campos conforme necessário
-);
-
-CREATE TABLE ServidorSistema (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    servidor_id INT,
-    sistema_id INT,
-    FOREIGN KEY (servidor_id) REFERENCES Servidores(id),
-    FOREIGN KEY (sistema_id) REFERENCES SistemasOperacionais(id)
-);
--->
-
-//////////////////////////// HISTORIC
-
-<!-- BANCO DE DADOS
-
-// Middleware para verificar o token JWT
-function verificarToken(req, res, next) {
-    const token = req.headers['authorization']?.split(' ')[1]; // Extrai o token do cabeçalho
-
-    if (!token) return res.sendStatus(403); // Sem token
-
-    jwt.verify(token, 'sua_chave_secreta', (err, decoded) => {
-        if (err) return res.sendStatus(401); // Token inválido
-        req.usuario = decoded.usuario; // Adiciona o usuário decodificado ao request
-        next();
-    });
-}
-
-// Rota para registrar o acesso
-app.post('/registrar', verificarToken, (req, res) => {
-    const { acao, descricao, data_hora } = req.body;
-    const usuario = req.usuario; // Obtém o usuário do token decodificado
-    const sql = 'INSERT INTO HistoricoAcessos (usuario, acao, descricao, data_hora) VALUES (?, ?, ?, ?)';
-    
-    db.query(sql, [usuario, acao, descricao, data_hora], (err, result) => {
-        if (err) {
-            console.error(err);
-            return res.status(500).send('Erro ao registrar acesso.');
-        }
-        res.status(200).send('Registro de acesso salvo com sucesso!');
-    });
-});
-
-CREATE TABLE HistoricoAcessos (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    usuario VARCHAR(255) NOT NULL,
-    acao VARCHAR(255) NOT NULL,
-    descricao TEXT NOT NULL,
-    data_hora DATETIME DEFAULT CURRENT_TIMESTAMP
-);
-
-
--->
-
+/////////////////////////////////////////////////////////////////////////////////////////////////servidores
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Registro de Acesso</title>
-</head>
-<body>
-    <h1>Bem-vindo ao Meu Site</h1>
-    <script>
-        // Simulando obtenção do token JWT do armazenamento local
-        const token = localStorage.getItem('jwt'); // Supondo que o token esteja armazenado no localStorage
-
-        const acao = 'acesso';
-        const descricao = 'Usuário acessou o site.';
-        const data_hora = new Date().toISOString().slice(0, 19).replace('T', ' '); // Data atual formatada
-
-        // Função para registrar o acesso
-        async function registrarAcesso() {
-            const response = await fetch('http://localhost:3000/registrar', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}` // Inclui o token JWT no cabeçalho
-                },
-                body: JSON.stringify({ acao, descricao, data_hora })
-            });
-
-            if (response.ok) {
-                console.log('Registro de acesso salvo com sucesso!');
-            } else {
-                console.error('Erro ao salvar o registro de acesso.');
-            }
+    <title>Exemplo de Scroll</title>
+    <style>
+        .image-container {
+            position: relative;
+            width: 300px; /* Defina a largura da imagem */
+            height: 400px; /* Defina a altura da imagem */
+            overflow-y: auto; /* Permite a rolagem vertical */
+            border: 2px solid #000; /* Borda para visualizar o contêiner */
         }
 
-        // Chama a função ao carregar a página
-        registrarAcesso();
-    </script>
+        .background-image {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1; /* Garante que a imagem fique no fundo */
+        }
+
+        .content {
+            padding: 10px;
+            z-index: 1; /* Garante que o conteúdo esteja acima da imagem */
+            position: relative;
+        }
+
+        .item {
+            background-color: rgba(255, 255, 255, 0.7); /* Fundo semi-transparente para os itens */
+            margin-bottom: 10px;
+            padding: 10px;
+            border-radius: 4px;
+            border: 1px solid #ccc;
+        }
+    </style>
+</head>
+<body>
+    <div class="image-container">
+        <!-- Imagem de fundo -->
+        <img src="https://via.placeholder.com/300x400" alt="Imagem de Fundo" class="background-image">
+        
+        <!-- Conteúdo que se auto-incrementa -->
+        <div class="content">
+            <div class="item">Elemento 1</div>
+            <div class="item">Elemento 2</div>
+            <div class="item">Elemento 3</div>
+            <div class="item">Elemento 4</div>
+            <div class="item">Elemento 5</div>
+            <div class="item">Elemento 6</div>
+            <div class="item">Elemento 7</div>
+            <div class="item">Elemento 8</div>
+            <!-- Adicione mais elementos conforme necessário -->
+        </div>
+    </div>
 </body>
 </html>
-
-
